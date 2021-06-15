@@ -16,6 +16,8 @@
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.0.4",
     "@vue/cli-service": "^3.0.4",
+    "less": "^4.1.1",
+    "less-loader": "^7.3.0",
     "vue-template-compiler": "^2.6.10"
   }
 }
