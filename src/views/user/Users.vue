@@ -44,7 +44,12 @@
               @click="removeUser(scope.row.id)"
             ></el-button>
             <el-tooltip effect="dark" content="分配角色" placement="top" :enterable="false">
-              <el-button size="mini" type="warning" icon="el-icon-setting"></el-button>
+              <el-button
+                size="mini"
+                type="warning"
+                icon="el-icon-setting"
+                @click="showSetRolesDialog(scope.row)"
+              ></el-button>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -90,7 +95,7 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="addDialogVisible = false">取 消</el-button>
+          <el-button @click="addDialogVisible=false">取 消</el-button>
           <el-button type="primary" @click="addUser">确 定</el-button>
         </span>
       </template>
@@ -125,11 +130,39 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 分配角色对话框 -->
+    <el-dialog
+      title="分配角色"
+      @close="setRolesDialogVisible = false"
+      :visible="setRolesDialogVisible"
+      width="50%"
+    >
+      <div>
+        <p>当前的用户: {{userInfo.username}}</p>
+        <p>当前的角色: {{userInfo.role_name}}</p>
+        <p>分配新角色:</p>
+        <el-select v-model="selectedRoleId" placeholder="请选择">
+          <el-option
+            v-for="item in roleLists"
+            :key="item.id"
+            :label="item.roleName"
+            :value="item.id"
+          ></el-option>
+        </el-select>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="setRolesDialogVisible=false">取 消</el-button>
+          <el-button type="primary" @click="setRoles">确 定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getUserList, putUser, addNewUser, getOneUser, editUser, removeOneUser } from '../../network/home'
+import { getUserList, putUser, addNewUser, getOneUser, editUser, removeOneUser, getRoles, setRoles } from '../../network/home'
 export default {
   data () {
     var checkEmail = (rule, value, cb) => {
@@ -234,8 +267,12 @@ export default {
       },
       userlist: [],
       total: 0,
+      userInfo: {},
+      roleLists: [],
+      selectedRoleId: '',
       addDialogVisible: false,
-      editDialogVisible: false
+      editDialogVisible: false,
+      setRolesDialogVisible: false
     }
   },
   created () {
@@ -259,6 +296,10 @@ export default {
     editDialogClosed () {
       this.$refs.editFormRef.resetFields()
     },
+    setRolesDialogClosed () {
+      this.userInfo = {}
+      this.selectedRoleId = ''
+    },
     addUser () {
       this.$refs.addFormRef.validate(valid => {
         if (!valid) return
@@ -281,6 +322,21 @@ export default {
       }).catch(() => {
         this.$message.info('已取消删除')
       })
+    },
+    setRoles () {
+      if (!this.selectedRoleId) {
+        return this.$message.error('请选择要分配的角色！')
+      }
+      setRoles(this.userInfo.id, this.selectedRoleId).then(res => {
+        if (res.data.meta.status !== 200) return this.$message.error(res.data.meta.msg)
+        this.$message.success('更新角色成功！')
+        this.getUserList()
+        this.setRolesDialogVisible = false
+      })
+    },
+    showSetRolesDialog (userInfo) {
+      this.userInfo = userInfo
+      this.getRoles()
     },
     showEidtDialog (id) {
       getOneUser(id).then(res => {
@@ -318,7 +374,6 @@ export default {
     },
     editOneUser () {
       editUser(this.editForm).then(res => {
-        console.log(res)
         if (res.data.meta.status !== 200) {
           return this.$message.error(res.data.meta.msg)
         }
@@ -333,8 +388,16 @@ export default {
         this.$message.success('删除成功!')
         this.getUserList()
       })
+    },
+    getRoles () {
+      getRoles().then(res => {
+        if (res.data.meta.status !== 200) {
+          return this.$message.error(res.data.meta.msg)
+        }
+        this.roleLists = res.data.data
+      })
+      this.setRolesDialogVisible = true
     }
-
   }
 }
 
